@@ -9,8 +9,8 @@ export interface LocationData {
     region: string;
     postalCode: string;
     timezone: string;
-    lat: string;
-    lng: string;
+    lat: number;
+    lng: number;
   };
   isp?: string;
   as?: {
