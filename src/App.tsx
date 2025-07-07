@@ -1,35 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import InfoPanel from "./components/InfoPanel";
+import MapSection from "./components/MapSection";
+import SearchForm from "./components/SearchForm";
+import type { LocationData } from "./types";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const API_KEY = import.meta.env.VITE_GEO_API_KEY;
+  const ipAddressEndpoint = `https://geo.ipify.org/api/v2/country,city?apiKey=${API_KEY}&ipAddress=`;
+  const domainsEndpoint = `https://geo.ipify.org/api/v2/country,city?apiKey=${API_KEY}&domain=`;
+
+  const [locationData, setLocationData] = useState<LocationData | null>(null);
+
+  const fetchAndSetData = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      setLocationData(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  const handleSearch = (searchTerm: string) => {
+    const ipReg =
+      /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const domainReg =
+      /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+
+    if (ipReg.test(searchTerm)) {
+      fetchAndSetData(ipAddressEndpoint + searchTerm);
+    } else if (domainReg.test(searchTerm)) {
+      fetchAndSetData(domainsEndpoint + searchTerm);
+    } else {
+      alert("Please enter a valid IP address or domain name");
+    }
+  };
+
+  useEffect(() => {
+    const fetchInitialIP = async () => {
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipJson = await ipRes.json();
+        await fetchAndSetData(ipAddressEndpoint + ipJson.ip);
+      } catch (error) {
+        console.error("Error fetching initial IP:", error);
+      }
+    };
+
+    fetchInitialIP();
+  }, []);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <main>
+      <SearchForm onSearch={handleSearch} />
+      <InfoPanel data={locationData} />
+      {locationData && (
+        <MapSection
+          lat={locationData.location.lat}
+          lng={locationData.location.lng}
+        />
+      )}
+    </main>
+  );
 }
 
-export default App
+export default App;
